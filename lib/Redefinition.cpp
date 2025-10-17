@@ -72,7 +72,7 @@ PHINode *Redefinition::getRedef(Value *V, BasicBlock *BB) {
 void Redefinition::createSigmasInFunction(Function *F) {
   for (auto& BB : *F) {
     // Rename operands used in conditional branches and their dependencies.
-    TerminatorInst *TI = BB.getTerminator();
+    Instruction *TI = BB.getTerminator();
     if (BranchInst *BI = dyn_cast<BranchInst>(TI))
       if (BI->isConditional())
         createSigmasForCondBranch(BI);
@@ -86,7 +86,7 @@ void Redefinition::createSigmasForCondBranch(BranchInst *BI) {
   if (!ICI || !ICI->getOperand(0)->getType()->isIntegerTy())
     return;
 
-  DEBUG(dbgs() << "createSigmasForCondBranch: " << *BI << "\n");
+  LLVM_DEBUG(dbgs() << "createSigmasForCondBranch: " << *BI << "\n");
 
   Value *Left = ICI->getOperand(0);
   Value *Right = ICI->getOperand(1);
@@ -124,7 +124,7 @@ void Redefinition::createSigmaNodesForValueAt(Value *V, Value *C,
                                               BasicBlock *BB) {
   assert(BB->getSinglePredecessor() && "Block has multiple predecessors");
 
-  DEBUG(
+  LLVM_DEBUG(
     dbgs() << "createSigmaNodesForValueAt: " << *V;
     if (C) dbgs() << " and " << *C;
     dbgs() << " at " << BB->getName() << "\n";
@@ -139,7 +139,7 @@ void Redefinition::createSigmaNodesForValueAt(Value *V, Value *C,
 
 void Redefinition::createSigmaNodeForValueAt(Value *V, BasicBlock *BB,
                                              BasicBlock::iterator Position) {
-  DEBUG(dbgs() << "createSigmaNodeForValueAt: " << *V << "\n");
+  LLVM_DEBUG(dbgs() << "createSigmaNodeForValueAt: " << *V << "\n");
 
   auto I = BB->begin();
   while (!isa<PHINode>(&(*I)) && I != BB->end()) ++I;
@@ -189,7 +189,7 @@ void Redefinition::createSigmaNodeForValueAt(Value *V, BasicBlock *BB,
 PHINode *Redefinition::createPhiNodeAt(Value *V, BasicBlock *BB) {
   assert(!V->getType()->isPointerTy() && "Value must not be a pointer");
 
-  DEBUG(dbgs() << "createPhiNodeAt: " << *V << " at "
+  LLVM_DEBUG(dbgs() << "createPhiNodeAt: " << *V << " at "
                << BB->getName() << "\n");
 
   // Return null if V isn't defined on all predecessors of BB.
@@ -225,7 +225,7 @@ bool Redefinition::dominatesUse(Value *V, BasicBlock *BB) {
 }
 
 void Redefinition::replaceUsesOfWithAfter(Value *V, Value *R, BasicBlock *BB) {
-  DEBUG(dbgs() << "Redefinition: replaceUsesOfWithAfter: " << *V << " to "
+  LLVM_DEBUG(dbgs() << "Redefinition: replaceUsesOfWithAfter: " << *V << " to "
                << *R << " after " << BB->getName() << "\n");
 
   std::set<Instruction*> Replace;

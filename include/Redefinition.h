@@ -5,17 +5,18 @@
 #include "llvm/Analysis/DominanceFrontier.h"
 #include "llvm/IR/Dominators.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/PassManager.h"
 
 #include <map>
 
 using namespace llvm;
 
-class Redefinition : public FunctionPass {
-public:
-  static char ID;
-  Redefinition() : FunctionPass(ID) { }
-  virtual void getAnalysisUsage(AnalysisUsage &AU) const;
-  virtual bool runOnFunction(Function &F);
+namespace redef {
+
+struct RedefAnalysis : public llvm::PassInfoMixin<RedefAnalysis> {
+
+  llvm::PreservedAnalyses run(llvm::Function &F, llvm::FunctionAnalysisManager &FAM);
+  
 
   PHINode *getRedef(Value *V, BasicBlock *BB);
 
@@ -39,6 +40,7 @@ private:
   DominatorTree     *DT_;
   DominanceFrontier *DF_;
 };
+}
 
 #endif
 

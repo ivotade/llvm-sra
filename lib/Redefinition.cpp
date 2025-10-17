@@ -13,19 +13,10 @@
 #include <list>
 #include <set>
 
-#if LLVM_VERSION_MINOR >= 7
-typedef LoopInfoWrapperPass LoopInfoPass;
-#else
-typedef LoopInfo LoopInfoPass;
-#endif
-
 STATISTIC(NumCreatedSigmas, "Number of sigma-phis created");
 STATISTIC(NumCreatedFrontierPhis, "Number of non-sigma-phis created");
 
 using namespace llvm;
-
-static RegisterPass<Redefinition> X("redef", "Integer live-range splitting");
-char Redefinition::ID = 0;
 
 // Values are redefinable if they're integers and not constants.
 static bool IsRedefinable(Value *V) {
@@ -38,16 +29,9 @@ static PHINode *CreateNamedPhi(Value *V, Twine Prefix,
   return PHINode::Create(V->getType(), 1, Name, Position);
 }
 
-void Redefinition::getAnalysisUsage(AnalysisUsage &AU) const {
-  AU.addRequired<DominatorTreeWrapperPass>();
-  AU.addRequired<DominanceFrontier>();
-  AU.addPreserved<LoopInfoPass>();
-  AU.setPreservesCFG();
-}
-
-bool Redefinition::runOnFunction(Function &F) {
-  DT_  = &getAnalysis<DominatorTreeWrapperPass>().getDomTree();
-  DF_  = &getAnalysis<DominanceFrontier>();
+PreservedAnalyses redef::RedefAnalysis::run(llvm::Function &F, llvm::FunctionAnalysisManager &FAM) {
+  DT_  = &FAM.getResult<DominatorTreeAnalysis>(F);
+  DF_  = &FAM.getResult<DominanceFrontierAnalysis>(F);
 
   createSigmasInFunction(&F);
 
@@ -57,10 +41,12 @@ bool Redefinition::runOnFunction(Function &F) {
         if (Phi->getNumIncomingValues() == 1)
           Redef_[&BB][Phi->getIncomingValue(0)] = Phi;
 
-  return true;
+  PreservedAnalyses PA;
+  PA.preserveSet<CFGAnalyses>();
+  return PA;
 }
 
-PHINode *Redefinition::getRedef(Value *V, BasicBlock *BB) {
+PHINode *redef::RedefAnalysis::getRedef(Value *V, BasicBlock *BB) {
   auto BBIt = Redef_.find(BB);
   if (BBIt == Redef_.end())
     return nullptr;
@@ -69,7 +55,7 @@ PHINode *Redefinition::getRedef(Value *V, BasicBlock *BB) {
 }
 
 // Create sigma nodes for all branches in the function.
-void Redefinition::createSigmasInFunction(Function *F) {
+void redef::RedefAnalysis::createSigmasInFunction(Function *F) {
   for (auto& BB : *F) {
     // Rename operands used in conditional branches and their dependencies.
     Instruction *TI = BB.getTerminator();
@@ -79,7 +65,7 @@ void Redefinition::createSigmasInFunction(Function *F) {
   }
 }
 
-void Redefinition::createSigmasForCondBranch(BranchInst *BI) {
+void redef::RedefAnalysis::createSigmasForCondBranch(BranchInst *BI) {
   assert(BI->isConditional() && "Expected conditional branch");
 
   ICmpInst *ICI = dyn_cast<ICmpInst>(BI->getCondition());
@@ -120,7 +106,7 @@ void Redefinition::createSigmasForCondBranch(BranchInst *BI) {
 // dependencies.
 // To avoid extra redefinitions, we pass in both branch values so that the
 // and use the union of both redefinition sets.
-void Redefinition::createSigmaNodesForValueAt(Value *V, Value *C,
+void redef::RedefAnalysis::createSigmaNodesForValueAt(Value *V, Value *C,
                                               BasicBlock *BB) {
   assert(BB->getSinglePredecessor() && "Block has multiple predecessors");
 
@@ -137,7 +123,7 @@ void Redefinition::createSigmaNodesForValueAt(Value *V, Value *C,
      createSigmaNodeForValueAt(C, BB, Position);
 }
 
-void Redefinition::createSigmaNodeForValueAt(Value *V, BasicBlock *BB,
+void redef::RedefAnalysis::createSigmaNodeForValueAt(Value *V, BasicBlock *BB,
                                              BasicBlock::iterator Position) {
   LLVM_DEBUG(dbgs() << "createSigmaNodeForValueAt: " << *V << "\n");
 
@@ -186,7 +172,7 @@ void Redefinition::createSigmaNodeForValueAt(Value *V, BasicBlock *BB,
 }
 
 // Creates a phi node for the given value at the given block.
-PHINode *Redefinition::createPhiNodeAt(Value *V, BasicBlock *BB) {
+PHINode *redef::RedefAnalysis::createPhiNodeAt(Value *V, BasicBlock *BB) {
   assert(!V->getType()->isPointerTy() && "Value must not be a pointer");
 
   LLVM_DEBUG(dbgs() << "createPhiNodeAt: " << *V << " at "
@@ -213,7 +199,7 @@ PHINode *Redefinition::createPhiNodeAt(Value *V, BasicBlock *BB) {
 }
 
 // Returns true if BB dominates a use of V.
-bool Redefinition::dominatesUse(Value *V, BasicBlock *BB) {
+bool redef::RedefAnalysis::dominatesUse(Value *V, BasicBlock *BB) {
   for (auto UI = V->user_begin(), UE = V->user_end(); UI != UE; ++UI)
     // Disregard phi nodes, since they can dominate their operands.
     if (isa<PHINode>(*UI) || V == *UI)
@@ -224,7 +210,7 @@ bool Redefinition::dominatesUse(Value *V, BasicBlock *BB) {
   return false;
 }
 
-void Redefinition::replaceUsesOfWithAfter(Value *V, Value *R, BasicBlock *BB) {
+void redef::RedefAnalysis::replaceUsesOfWithAfter(Value *V, Value *R, BasicBlock *BB) {
   LLVM_DEBUG(dbgs() << "Redefinition: replaceUsesOfWithAfter: " << *V << " to "
                << *R << " after " << BB->getName() << "\n");
 

@@ -128,8 +128,8 @@ void redef::RedefAnalysis::createSigmaNodeForValueAt(Value *V, BasicBlock *BB,
   LLVM_DEBUG(dbgs() << "createSigmaNodeForValueAt: " << *V << "\n");
 
   auto I = BB->begin();
-  while (!isa<PHINode>(&(*I)) && I != BB->end()) ++I;
-  while (isa<PHINode>(&(*I)) && I != BB->end()) {
+  while (I != BB->end() && !isa<PHINode>(&(*I))) ++I;
+  while (I != BB->end() && isa<PHINode>(&(*I)) ) {
     PHINode *Phi = cast<PHINode>(&(*I));
     if (Phi->getNumIncomingValues() == 1 &&
         Phi->getIncomingValue(0) == V)

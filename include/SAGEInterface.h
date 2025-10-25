@@ -1,7 +1,7 @@
 #ifndef _SAGEINTERFACE_H_
 #define _SAGEINTERFACE_H_
 
-#include "Python/PythonInterface.h"
+#include "PythonInterface.h"
 
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"

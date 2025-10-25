@@ -8,10 +8,17 @@ add_library(Python MODULE
   PythonPlugin.cpp
 )
 
+add_library(SAGEInterface MODULE
+  SAGEInterface.cpp
+)
+
 target_include_directories(Redef PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/../include")
 
 target_include_directories(Python PRIVATE
+  "${CMAKE_CURRENT_SOURCE_DIR}/../include")
+
+target_include_directories(SAGEInterface PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/../include")
   
 target_link_libraries(Python -lpython3.13)

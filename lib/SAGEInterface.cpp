@@ -38,7 +38,7 @@ PyObject *SAGEInterface::var(const unsigned long Val) {
 }
 
 PyObject *SAGEInterface::var(const char *Str) {
-  return PI_->call(ObjVec_.get(), FN_EXPR_INIT, {PyString_FromString(Str)});
+  return PI_->call(ObjVec_.get(), FN_EXPR_INIT, {PyUnicode_FromString(Str)});
 }
 
 std::string SAGEInterface::getName(PyObject *Expr) {
@@ -149,12 +149,12 @@ PyObject *SAGEInterface::getFalse() {
 
 long SAGEInterface::getInteger(PyObject *Expr) {
   auto Obj = PI_->callSelf("get_integer", Expr, {});
-  return PyInt_AsLong(Obj);
+  return PyLong_AsLong(Obj);
 }
 
 long SAGEInterface::getSize(PyObject *Expr) {
    auto Obj = PI_->callSelf("size", Expr, {});
-   return PyInt_AsLong(Obj);
+   return PyLong_AsLong(Obj);
 }
 
 PyObject *SAGEInterface::getNumer(PyObject *Expr) {
@@ -231,7 +231,7 @@ bool SAGEInterface::isMinusInf(PyObject *Expr) {
 
 int SAGEInterface::compare(PyObject *First, PyObject *Second) {
   PyObject *Res = PI_->callSelf("compare", First, {Second});
-  assert(PyInt_Check(Res) && "Result should be an integer");
-  return (int)PyInt_AsLong(Res);
+  assert(PyLong_Check(Res) && "Result should be an integer");
+  return (int)PyLong_AsLong(Res);
 }
 

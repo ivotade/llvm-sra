@@ -16,10 +16,6 @@ raw_ostream& operator<<(raw_ostream& OS, PyObject &Obj) {
   return OS;
 }
 
-static RegisterPass<PythonInterface>
-  X("python-interface", "LLVM/Python interface");
-char PythonInterface::ID = 0;
-
 std::string PythonInterface::toString(PyObject *String) {
   return PyUnicode_AsUTF8(String);
 }
@@ -35,19 +31,25 @@ std::vector<PyObject*> PythonInterface::toVector(PyObject *List) {
   return Vec;
 }
 
-bool PythonInterface::doInitialization(Module&) {
+PythonAnalysis::PythonAnalysis() {
   static wchar_t *Argv[] = { (wchar_t  *)L"opt" };
   PyConfig config;
   PyConfig_InitPythonConfig(&config);
   PyConfig_SetArgv(&config, 1, Argv);
   Py_InitializeFromConfig(&config);
-  return true;
+  LLVM_DEBUG(dbgs() << "PythonAnalysis constructor: " << "\n");
 }
 
-bool PythonInterface::doFinalization(Module&) {
-  Py_Finalize();
-  return true;
+PythonAnalysis::Result PythonAnalysis::run(llvm::Module &M, llvm::ModuleAnalysisManager &MAM) {
+  return &mPI;
 }
+
+PythonAnalysis::~PythonAnalysis() {
+  Py_Finalize();
+  LLVM_DEBUG(dbgs() << "PythonAnalysis destructor: " << "\n");
+}
+
+AnalysisKey PythonAnalysis::Key;
 
 PyObject *PythonInterface::getModule(const char *Mod) {
   auto It = Modules_.find(Mod);

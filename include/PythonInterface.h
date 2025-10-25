@@ -6,15 +6,15 @@
 #include "llvm/Pass.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/IR/PassManager.h"
 
 #include <vector>
 #include <map>
 
 using namespace llvm;
 
-// A ModulePass allows global initialization and finalization, which we need
-// for calling Py_Init and Py_Finalize.
-class PythonInterface : public ModulePass {
+
+class PythonInterface {
 public:
   // Holds each object we need to get a reference to.
   struct PythonObjInfo {
@@ -35,18 +35,8 @@ public:
     }
   };
 
-  static char ID;
-  PythonInterface() : ModulePass(ID) { }
-
   static std::string toString(PyObject *String);
   static std::vector<PyObject*> toVector(PyObject *List);
-
-  virtual bool runOnModule(Module&) {
-    return false;
-  }
-
-  virtual bool doInitialization(Module&);
-  virtual bool doFinalization(Module&);
 
   PyObject *getModule (const char *Mod);
   PyObject *getClass  (const char *Mod, const char *Class);
@@ -76,6 +66,22 @@ private:
 };
 
 raw_ostream& operator<<(raw_ostream& OS, PyObject &Obj);
+
+struct PythonAnalysis : public llvm::AnalysisInfoMixin<PythonAnalysis> {
+  PythonAnalysis();
+  
+  using Result = std::tuple<PythonInterface*>;
+  Result run(llvm::Module &M, llvm::ModuleAnalysisManager &MAM);
+  
+  ~PythonAnalysis();
+  
+  static llvm::AnalysisKey Key;
+  
+  private:
+  PythonInterface mPI;
+};
+
+
 
 #endif
 

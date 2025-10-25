@@ -5,6 +5,7 @@ add_library(Redef MODULE
 
 add_library(Python MODULE
   PythonInterface.cpp
+  PythonPlugin.cpp
 )
 
 target_include_directories(Redef PRIVATE
@@ -12,3 +13,5 @@ target_include_directories(Redef PRIVATE
 
 target_include_directories(Python PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/../include")
+  
+target_link_libraries(Python -lpython3.13)

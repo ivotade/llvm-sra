@@ -1,13 +1,14 @@
 #ifndef _PYTHONINTERFACE_H_
 #define _PYTHONINTERFACE_H_
 
-#include <python2.7/Python.h>
+#include <python3.13/Python.h>
 
 #include "llvm/Pass.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include <vector>
+#include <map>
 
 using namespace llvm;
 

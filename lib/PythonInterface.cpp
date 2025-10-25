@@ -12,7 +12,7 @@ using namespace llvm;
 
 raw_ostream& operator<<(raw_ostream& OS, PyObject &Obj) {
   PyObject *Repr = PyObject_Repr(&Obj);
-  OS << PyString_AsString(Repr);
+  OS << PyUnicode_AsUTF8(Repr);
   return OS;
 }
 
@@ -21,7 +21,7 @@ static RegisterPass<PythonInterface>
 char PythonInterface::ID = 0;
 
 std::string PythonInterface::toString(PyObject *String) {
-  return PyString_AsString(String);
+  return PyUnicode_AsUTF8(String);
 }
 
 std::vector<PyObject*> PythonInterface::toVector(PyObject *List) {
@@ -36,9 +36,11 @@ std::vector<PyObject*> PythonInterface::toVector(PyObject *List) {
 }
 
 bool PythonInterface::doInitialization(Module&) {
-  static char *Argv[] = { (char*)"opt" };
-  Py_Initialize();
-  PySys_SetArgv(1, Argv);
+  static wchar_t *Argv[] = { (wchar_t  *)L"opt" };
+  PyConfig config;
+  PyConfig_InitPythonConfig(&config);
+  PyConfig_SetArgv(&config, 1, Argv);
+  Py_InitializeFromConfig(&config);
   return true;
 }
 
@@ -53,7 +55,7 @@ PyObject *PythonInterface::getModule(const char *Mod) {
     return It->second;
   }
 
-  PyObject *ModStr = PyString_FromString(Mod);
+  PyObject *ModStr = PyUnicode_FromString(Mod);
   PyObject *ModObj = PyImport_Import(ModStr);
   Modules_[Mod] = ModObj;
   return ModObj;
@@ -138,7 +140,7 @@ PythonInterface::PythonObjVec
 }
 
 PyObject *PythonInterface::call(PyObject *Fn, PyObject *Tuple) {
-  DEBUG(dbgs() << "PythonInterface: call: " << *Fn << *Tuple << "\n");
+  LLVM_DEBUG(dbgs() << "PythonInterface: call: " << *Fn << *Tuple << "\n");
   return PyObject_CallObject(Fn, Tuple);
 }
 
@@ -167,7 +169,7 @@ PyObject *PythonInterface::callSelf(PyObject *FnStr, PyObject *Self,
 
 PyObject *PythonInterface::callSelf(const char *Fn, PyObject *Self,
                                     PyObject *Tuple) {
-  PyObject *FnStr = PyString_FromString(Fn);
+  PyObject *FnStr = PyUnicode_FromString(Fn);
   return callSelf(FnStr, Self, Tuple);
 }
 
